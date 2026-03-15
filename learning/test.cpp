@@ -4,6 +4,9 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 void print_bits(int n)
 {
@@ -47,11 +50,11 @@ void test_inet_pton()
     inet_pton(AF_INET, "0.0.1.1", &sa.sin_addr); // -1 on error, 0 on wrong addr format
 
     char res[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &sa.sin_addr.s_addr, &res[0], INET_ADDRSTRLEN); // convert to presentation foramt
+    inet_ntop(AF_INET, &sa.sin_addr.s_addr, &res[0], INET_ADDRSTRLEN); // convert to presentation
     std::cout << ntohl(sa.sin_addr.s_addr) << ": " << res << " " << "\n";
 
     struct sockaddr_in6 sa6;
-    inet_pton(AF_INET6, "0000:0000:0000:0000:0000:0000:0000:0001", &sa6.sin6_addr);
+    inet_pton(AF_INET6, "0000:0000:0000:0000::0000:0000:0001", &sa6.sin6_addr);
 
     char res6[INET6_ADDRSTRLEN];
     inet_ntop(AF_INET6, &sa6.sin6_addr, &res6[0], INET6_ADDRSTRLEN);
@@ -59,7 +62,22 @@ void test_inet_pton()
     std::cout << res6 << "\n";
 }
 
+void test_getaddrinfo()
+{
+    addrinfo *ai;
+    getaddrinfo("google.com", "80", nullptr, &ai);
+
+    if (ai->ai_family == AF_INET)
+    {
+        char res[INET_ADDRSTRLEN];
+        sockaddr_in *sa = reinterpret_cast<sockaddr_in *>(ai->ai_addr);
+
+        inet_ntop(AF_INET, &sa->sin_addr.s_addr, &res[0], INET_ADDRSTRLEN);
+        std::cout << res << "\n";
+    }
+}
+
 int main()
 {
-    test_inet_pton();
+    test_getaddrinfo();
 }

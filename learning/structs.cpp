@@ -23,16 +23,17 @@ struct sockaddr
     char sa_data[14];         // 14 bytes of protocol address
 };
 
-// // (IPv4 only--see struct in6_addr for IPv6)
-// // Internet address (a structure for historical reasons)
-// struct in_addr
-// {
-//     uint32_t s_addr; // that's a 32-bit int (4 bytes)
-// };
+// (IPv4 only--see struct in6_addr for IPv6)
+// Internet address (a structure for historical reasons)
+struct in_addr
+{
+    uint32_t s_addr; // that's a 32-bit int (4 bytes)
+};
 
-// struct in6_addr {
-//     unsigned char s6_addr[16]; // IPv6 address
-// };
+struct in6_addr
+{
+    unsigned char s6_addr[16]; // IPv6 address
+};
 
 // (IPv4 only--see struct sockaddr_in6 for IPv6)
 // can be typecast into sockaddr
