@@ -65,7 +65,10 @@ void test_inet_pton()
 void test_getaddrinfo()
 {
     addrinfo *ai;
-    getaddrinfo("google.com", "80", nullptr, &ai);
+    if (getaddrinfo("google.com", "80", nullptr, &ai) != 0)
+    {
+        std::cout << "Failed\n";
+    }
 
     if (ai->ai_family == AF_INET)
     {
