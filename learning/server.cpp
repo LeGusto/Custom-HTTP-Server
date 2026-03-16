@@ -60,5 +60,7 @@ void print_addrinfo(addrinfo *servinfo)
 
 int main()
 {
-    print_addrinfo(read_TCP_v4("google.com"));
+    addrinfo *servinfo = read_TCP_v4("google.com");
+    print_addrinfo(servinfo);
+    freeaddrinfo(servinfo);
 }
