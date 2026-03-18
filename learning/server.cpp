@@ -20,7 +20,12 @@ public:
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
 
-        getaddrinfo(name, "80", &hints, &servinfo);
+        int status = getaddrinfo(name, "80", &hints, &servinfo);
+
+        if (status != 0)
+        {
+            throw std::runtime_error(gai_strerror(status));
+        }
 
         return servinfo;
     }
@@ -64,7 +69,7 @@ public:
 
 int main()
 {
-    addrinfo *servinfo = Server::read_TCP_v4("google.com");
+    addrinfo *servinfo = Server::read_TCP_v4("googasdfafsdfasfasfasle.com");
     Server::print_addrinfo(servinfo);
     freeaddrinfo(servinfo);
 }
