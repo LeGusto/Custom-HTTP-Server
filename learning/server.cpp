@@ -7,18 +7,30 @@
 #include <print>
 #include <cstddef>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <vector>
 
 class Server
 {
+private:
+    addrinfo *servinfo = nullptr;
+    int sock_desc = -1;
+
 public:
-    static addrinfo *read_TCP_v4(const char name[])
+    Server(const Server &) = delete;            // no copy Server(s)
+    Server &operator=(const Server &) = delete; // no copy Server b = s
+
+    Server(const char name[])
     {
-        addrinfo *servinfo;
+        read_TCP_v4(name);
+    }
+
+    addrinfo *read_TCP_v4(const char name[])
+    {
         addrinfo hints;
 
         memset(&hints, 0, sizeof(hints));
-        hints.ai_family = AF_UNSPEC;
+        hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
         // hints.ai_flags = AI_PASSIVE;
 
@@ -32,8 +44,13 @@ public:
         return servinfo;
     }
 
-    static void print_addrinfo(addrinfo *servinfo)
+    void print_addrinfo()
     {
+        if (servinfo == nullptr)
+        {
+            throw std::runtime_error("No address info available");
+        }
+
         std::string addr = "Unknown";
         short port = -1;
         std::string family = "Unknown";
@@ -68,8 +85,13 @@ public:
         std::print("Address: {}\n Port: {}\n Family: {}\n Socket type: {} \n\n", addr, port, family, socket_type);
     }
 
-    static void print_all_ips(addrinfo *servinfo)
+    void print_all_ips()
     {
+        if (servinfo == nullptr)
+        {
+            throw std::runtime_error("No address info available");
+        }
+
         char res[INET6_ADDRSTRLEN];
 
         std::vector<std::string> ips;
@@ -97,12 +119,45 @@ public:
             std::cout << v << "\n";
         }
     }
+
+    void get_socket()
+    {
+        if (servinfo == nullptr)
+        {
+            throw std::runtime_error("No address info available");
+        }
+
+        sock_desc = -1;
+        addrinfo *servinfo_copy = servinfo;
+
+        while ((sock_desc = socket(servinfo_copy->ai_family, servinfo_copy->ai_socktype, servinfo_copy->ai_protocol)) == -1)
+        {
+            if (servinfo_copy->ai_next == nullptr)
+            {
+                throw std::runtime_error("All address nodes invalid");
+            }
+
+            servinfo_copy = servinfo_copy->ai_next;
+        }
+    }
+
+    ~Server()
+    {
+        if (servinfo != nullptr)
+        {
+            freeaddrinfo(servinfo);
+        }
+        if (sock_desc != -1)
+        {
+            close(sock_desc);
+        }
+    }
 };
 
 int main()
 {
-    addrinfo *servinfo = Server::read_TCP_v4("google.com");
-    Server::print_addrinfo(servinfo);
-    Server::print_all_ips(servinfo);
-    freeaddrinfo(servinfo);
+    Server server{"google.com"};
+    server.print_addrinfo();
+    server.print_all_ips();
+    server.get_socket();
 }
