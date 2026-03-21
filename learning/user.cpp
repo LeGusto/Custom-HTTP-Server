@@ -9,36 +9,39 @@
 #include <stdexcept>
 #include <iostream>
 
-int main()
+addrinfo *servinfo;
+int socket_desc;
+
+void get_udp()
 {
-    addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
+    char buf[20]{};
+    memset(buf, 0, sizeof(buf));
+    buf[19] = '\0';
 
-    addrinfo *servinfo;
-    int status = getaddrinfo(HOST, PORT, &hints, &servinfo);
-    if (status != 0)
-    {
-        throw std::runtime_error(gai_strerror(status));
-    }
+    struct sockaddr from;
+    socklen_t fromlen = sizeof(from);
 
-    int socket_desc;
-    while ((socket_desc = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1)
+    sendto(socket_desc, buf, sizeof(buf), 0, servinfo->ai_addr, servinfo->ai_addrlen);
+    int bytes_received = 0;
+    while ((bytes_received = recvfrom(socket_desc, &buf, sizeof(buf) - 1, 0, &from, &fromlen)) != 0)
     {
-        if (servinfo->ai_next == nullptr)
+        if (bytes_received == -1)
         {
-            throw std::runtime_error("All address nodes invalid");
+            throw std::runtime_error(strerror(errno));
         }
-        servinfo = servinfo->ai_next;
-    }
+        std::cout << buf;
+    };
+}
 
+void get_tcp()
+{
     if (connect(socket_desc, servinfo->ai_addr, servinfo->ai_addrlen))
     {
         throw std::runtime_error(strerror(errno));
     }
 
     char buf[20]{};
+    memset(buf, 0, sizeof(buf));
     buf[19] = '\0';
 
     int bytes_received = 0;
@@ -48,9 +51,36 @@ int main()
         {
             throw std::runtime_error(strerror(errno));
         }
-
-        // std::cout << buf;
+        std::cout << buf;
     };
+}
+
+int main()
+{
+    addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AI_FAMILY;
+    hints.ai_socktype = AI_SOCKTYPE;
+
+    int status = getaddrinfo(HOST, PORT, &hints, &servinfo);
+    if (status != 0)
+    {
+        throw std::runtime_error(gai_strerror(status));
+    }
+
+    while ((socket_desc = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1)
+    {
+        if (servinfo->ai_next == nullptr)
+        {
+            throw std::runtime_error("All address nodes invalid");
+        }
+        servinfo = servinfo->ai_next;
+    }
+
+    if (servinfo->ai_socktype == SOCK_STREAM)
+        get_tcp();
+    else if (servinfo->ai_socktype == SOCK_DGRAM)
+        get_udp();
 
     freeaddrinfo(servinfo);
     close(socket_desc);
