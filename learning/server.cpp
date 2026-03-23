@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <vector>
+#include <fcntl.h>
 #include "config.h"
 
 class Server
@@ -171,6 +172,10 @@ public:
         }
 
         setsockopt(sock_desc, SOL_SOCKET, SO_REUSEPORT, &reuse_port, sizeof(reuse_port));
+        if (!BLOCKING)
+        {
+            fcntl(sock_desc, F_SETFL, O_NONBLOCK);
+        }
         log("Socket created\n");
         // setsockopt(sock_desc, SOL_SOCKET, SO_SNDBUF, &SND_SIZE, sizeof(SND_SIZE));
     }
@@ -220,52 +225,59 @@ public:
 
     void send_msg(const char *msg)
     {
-        size_t bytes_needed = strlen(msg);
-        size_t bytes_sent = 0;
-
         log("Sending message...\n");
-
         if (servinfo->ai_socktype == SOCK_STREAM)
         {
-            while (bytes_needed > 0)
-            {
-                std::cout << "[server] Bytes left: " << bytes_needed << "\n";
-                if ((bytes_sent = send(listen_sock_desc, msg, bytes_needed, 0)) == -1)
-                {
-                    throw std::runtime_error(strerror(errno));
-                }
-                bytes_needed -= bytes_sent;
-                msg += bytes_sent;
-            }
-
-            log("Message sent\n");
+            send_msg_tcp(msg);
         }
         else if (servinfo->ai_socktype == SOCK_DGRAM)
         {
-            sockaddr_storage sa_from;
-            socklen_t sa_from_len = sizeof(sa_from);
-            char buf[2];
-            buf[1] = '\0';
+            send_msg_udp(msg);
+        }
+        log("Message sent\n");
+    }
 
-            recvfrom(sock_desc, buf, sizeof(buf) - 1, 0, reinterpret_cast<sockaddr *>(&sa_from), &sa_from_len);
+    void send_msg_udp(const char *msg)
+    {
+        size_t bytes_needed = strlen(msg);
+        size_t bytes_sent = 0;
 
-            while (bytes_needed > 0)
-            {
-                std::cout << "[server] Bytes left: " << bytes_needed << "\n";
-                if ((bytes_sent = sendto(sock_desc, msg, std::min(UDP_PACKET_SIZE, bytes_needed), 0, reinterpret_cast<sockaddr *>(&sa_from), sa_from_len)) == -1)
-                {
-                    throw std::runtime_error(strerror(errno));
-                }
-                bytes_needed -= bytes_sent;
-                msg += bytes_sent;
-            }
+        char buf[2];
+        buf[1] = '\0';
 
-            if ((bytes_sent = sendto(sock_desc, msg, 0, 0, reinterpret_cast<sockaddr *>(&sa_from), sa_from_len)) == -1)
+        recvfrom(sock_desc, buf, sizeof(buf) - 1, 0, reinterpret_cast<sockaddr *>(&listen_sockaddr), &listen_sockaddr_addrlen);
+
+        while (bytes_needed > 0)
+        {
+            std::cout << "[server] Bytes left: " << bytes_needed << "\n";
+            if ((bytes_sent = sendto(sock_desc, msg, std::min(UDP_PACKET_SIZE, bytes_needed), 0, reinterpret_cast<sockaddr *>(&listen_sockaddr), listen_sockaddr_addrlen)) == -1)
             {
                 throw std::runtime_error(strerror(errno));
             }
+            bytes_needed -= bytes_sent;
+            msg += bytes_sent;
+        }
 
-            log("Message sent\n");
+        if ((bytes_sent = sendto(sock_desc, msg, 0, 0, reinterpret_cast<sockaddr *>(&listen_sockaddr), listen_sockaddr_addrlen)) == -1)
+        {
+            throw std::runtime_error(strerror(errno));
+        }
+    }
+
+    void send_msg_tcp(const char *msg)
+    {
+        size_t bytes_needed = strlen(msg);
+        size_t bytes_sent = 0;
+
+        while (bytes_needed > 0)
+        {
+            std::cout << "[server] Bytes left: " << bytes_needed << "\n";
+            if ((bytes_sent = send(listen_sock_desc, msg, bytes_needed, 0)) == -1)
+            {
+                throw std::runtime_error(strerror(errno));
+            }
+            bytes_needed -= bytes_sent;
+            msg += bytes_sent;
         }
     }
 
@@ -278,6 +290,10 @@ public:
         if (sock_desc != -1)
         {
             close(sock_desc);
+        }
+        if (listen_sock_desc != -1)
+        {
+            close(listen_sock_desc);
         }
     }
 };
