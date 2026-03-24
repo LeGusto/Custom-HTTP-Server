@@ -25,6 +25,8 @@ protected:
     socklen_t listen_sockaddr_addrlen = sizeof(sockaddr_storage);
     sockaddr_storage listen_sockaddr; // sockaddr type agnostic storage
 public:
+    Server() = default;
+
     void setup_addrinfo()
     {
         addrinfo hints;
