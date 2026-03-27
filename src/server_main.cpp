@@ -18,8 +18,7 @@ int main()
     {
         throw std::runtime_error("Unknown socket type");
     }
-    server->get_connection();
-    server->use_poll();
+    server->start_server();
     // server->get_connection();
     // const char *buf = "Hello";
     // server->send_msg(buf);
