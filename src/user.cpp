@@ -8,91 +8,84 @@
 #include <cstring>
 #include <stdexcept>
 #include <iostream>
+#include <vector>
+#include <print>
+#include <thread>
+#include <atomic>
+#include <user.h>
 
-addrinfo *servinfo;
-int socket_desc;
+User::User() : user_id(user_count++) {};
 
-void get_udp()
+void User::log(std::string s)
 {
-    char buf[20]{};
-    memset(buf, 0, sizeof(buf));
-    buf[19] = '\0';
-
-    struct sockaddr from;
-    socklen_t fromlen = sizeof(from);
-
-    sendto(socket_desc, buf, sizeof(buf), 0, servinfo->ai_addr, servinfo->ai_addrlen);
-    int bytes_received = 0;
-    while ((bytes_received = recvfrom(socket_desc, &buf, sizeof(buf) - 1, 0, &from, &fromlen)) != 0)
-    {
-        if (bytes_received == -1)
-        {
-            throw std::runtime_error(strerror(errno));
-        }
-        std::cout << buf;
-    };
+    std::print("[user {}]: {}\n", user_id, s);
 }
 
-void get_tcp()
-{
-    if (connect(socket_desc, servinfo->ai_addr, servinfo->ai_addrlen))
-    {
-        throw std::runtime_error(strerror(errno));
-    }
-
-    char buf[20]{};
-    memset(buf, 0, sizeof(buf));
-    buf[19] = '\0';
-
-    send(socket_desc, buf, 1, 0);
-
-    int bytes_needed = 0;
-    recv(socket_desc, &bytes_needed, sizeof(bytes_needed), 0);
-    bytes_needed = ntohl(bytes_needed);
-
-    int bytes_received = 0;
-    while (bytes_needed > 0)
-    {
-        bytes_received = recv(socket_desc, &buf, sizeof(buf) - 1, 0);
-        if (bytes_received == -1)
-        {
-            throw std::runtime_error(strerror(errno));
-        }
-
-        bytes_needed -= bytes_received;
-
-        std::cout << bytes_needed << " " << buf << "\n";
-    };
-    std::cout << "Done\n";
-}
-
-int main()
+void User::get_addrinfo()
 {
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AI_FAMILY;
     hints.ai_socktype = AI_SOCKTYPE;
 
-    int status = getaddrinfo(HOST, PORT, &hints, &servinfo);
+    int status = getaddrinfo("localhost", PORT, &hints, &servinfo);
     if (status != 0)
     {
         throw std::runtime_error(gai_strerror(status));
     }
+    servinfo_head = servinfo;
+}
 
-    while ((socket_desc = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1)
+void User::get_socket()
+{
+    if ((fd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1)
+    {
+        throw std::runtime_error(strerror(errno));
+    }
+}
+
+void User::connect_socket()
+{
+    while (connect(fd, servinfo->ai_addr, servinfo->ai_addrlen) == -1)
     {
         if (servinfo->ai_next == nullptr)
         {
-            throw std::runtime_error("All address nodes invalid");
+            throw std::runtime_error(strerror(errno));
         }
         servinfo = servinfo->ai_next;
     }
+}
 
-    if (servinfo->ai_socktype == SOCK_STREAM)
-        get_tcp();
-    else if (servinfo->ai_socktype == SOCK_DGRAM)
-        get_udp();
+void User::get_data()
+{
+    char buf[20];
+    memset(&buf, '\0', sizeof(buf));
+    send(fd, buf, 1, 0);
 
-    freeaddrinfo(servinfo);
-    close(socket_desc);
+    int len = 0;
+    recv(fd, &len, sizeof(len), MSG_WAITALL); // waitall in case partial message gets delivered
+    len = ntohl(len);
+    while (len > 0)
+    {
+        int gotten = recv(fd, &buf, sizeof(buf) - 1, 0);
+        len -= gotten;
+        log(buf);
+        memset(&buf, '\0', sizeof(buf));
+    }
+}
+
+void User::use_server()
+{
+    get_addrinfo();
+    get_socket();
+    connect_socket();
+    get_data();
+}
+
+User::~User()
+{
+    if (servinfo_head != nullptr)
+        freeaddrinfo(servinfo_head);
+    if (fd != -1)
+        close(fd);
 }
