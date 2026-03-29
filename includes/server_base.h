@@ -20,8 +20,8 @@ class Server
 protected:
     addrinfo *servinfo = nullptr;
     addrinfo *servinfo_head = nullptr; // for freeing linked list
-    int sock_desc = -1;
-    int reuse_port = 1; // skip TIME_WAIT for closed ports, doesn't wait for leftover packets
+    int32_t sock_desc = -1;
+    int32_t reuse_port = 1; // skip TIME_WAIT for closed ports, doesn't wait for leftover packets
     std::vector<pollfd> pfds;
 
     void setup_addrinfo();

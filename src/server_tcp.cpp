@@ -12,7 +12,7 @@ void ServerTCP::listen_socket()
 
 void ServerTCP::accept_socket()
 {
-    int new_fd = -1;
+    int32_t new_fd = -1;
     sockaddr_storage sa{};
     socklen_t sa_len = sizeof(sa);
     log("Waiting for connection...\n");
@@ -39,7 +39,7 @@ void ServerTCP::send_msg(const char *msg, int fd)
 
     while (bytes_needed > 0)
     {
-        std::cout << "[server] Bytes left: " << bytes_needed << "\n";
+        log("Bytes left: {}", bytes_needed);
         if ((bytes_sent = send(fd, msg, bytes_needed, 0)) == -1)
         {
             throw std::runtime_error(strerror(errno));

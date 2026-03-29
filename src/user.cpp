@@ -62,7 +62,7 @@ void User::get_data()
     memset(&buf, '\0', sizeof(buf));
     send(fd, buf, 1, 0);
 
-    int len = 0;
+    int32_t len = 0;
     recv(fd, &len, sizeof(len), MSG_WAITALL); // waitall in case partial message gets delivered
     len = ntohl(len);
     while (len > 0)

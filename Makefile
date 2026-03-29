@@ -7,8 +7,8 @@ build_server: src/server_base.cpp src/server_main.cpp src/server_tcp.cpp src/ser
 build_user: src/user.cpp src/user_spawner.cpp
 	g++ ${CXXFLAGS} -o bin/user src/user_spawner.cpp src/user.cpp
 
-test: src/test.cpp
-	g++ ${CXXFLAGS} -o bin/test src/test.cpp && ./bin/test
+test: learning/test.cpp
+	g++ ${CXXFLAGS} -o bin/test learning/test.cpp && ./bin/test
 
 server: build_server
 	./bin/server
