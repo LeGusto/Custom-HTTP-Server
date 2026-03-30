@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <map>
 #include <list>
@@ -16,21 +18,23 @@ private:
     inline static uint32_t orderID = 0;
 
 public:
-    uint32_t id = 0;
+    uint32_t id;
+    uint32_t quantity = 0;
     uint32_t price;
     uint32_t customerID;
     SIDE side;
 
-    Order(SIDE _side, uint32_t _price) : side(_side), price(_price), id(orderID++) {};
+    Order(SIDE _side, uint32_t _quantity, uint32_t _price, uint32_t _customerID) : side(_side), quantity(_quantity), price(_price), customerID(_customerID), id(orderID++) {};
 };
 
 struct Match
 {
 public:
-    uint32_t askID = -1;
-    uint32_t bidID = -1;
+    Order askID;
+    Order bidID;
+    uint32_t quantity = 0;
 
-    Match(uint32_t _askID, uint32_t _bidID) : askID(_askID), bidID(_bidID) {};
+    Match(Order _askID, Order _bidID, uint32_t _quantity) : askID(_askID), bidID(_bidID), quantity(_quantity) {};
 };
 
 struct mapNavigation
@@ -42,16 +46,17 @@ class OrderBook
 {
 private:
     std::map<uint32_t, std::list<Order>> askMap;
-    std::map<uint32_t, std::list<Order>> bidMap;
+    std::map<uint32_t, std::list<Order>, std::greater<uint32_t>> bidMap;
 
     std::map<uint32_t, mapNavigation> orderIDMap;
 
-    std::optional<uint32_t> highest_bid();
-    std::optional<uint32_t> lowest_ask();
-
     std::vector<Match> match_orders();
 
-    std::vector<Match> process_order(SIDE side, uint32_t price, uint32_t customerID);
+public:
+    std::optional<Order> highest_bid();
+    std::optional<Order> lowest_ask();
+
+    std::vector<Match> process_order(SIDE side, uint32_t quantity, uint32_t price, uint32_t customerID);
     std::optional<Order> cancel_order(uint32_t orderID);
 
     std::vector<Order> get_orders(uint32_t customerID);

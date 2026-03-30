@@ -15,5 +15,12 @@ server: build_server
 
 user: build_user
 	./bin/user
+
+build_tests: tests/test_order_book.cpp src/order_book.cpp
+	g++ ${CXXFLAGS} -o bin/test_order_book tests/test_order_book.cpp src/order_book.cpp
+
+tests: build_tests
+	./bin/test_order_book
+
 clean:
 	rm -f bin/*
