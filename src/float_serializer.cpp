@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <iostream>
+#include <bit>
 
 uint64_t pack754(long double f, uint32_t bits, uint32_t exp_bits)
 {
@@ -70,4 +71,11 @@ long double unpack754(uint64_t encoded_f, uint32_t bits, uint32_t exp_bits)
         f *= -1;
 
     return f;
+}
+
+uint64_t htonll(uint64_t val)
+{
+    if constexpr (std::endian::native == std::endian::little)
+        return std::byteswap(val);
+    return val;
 }
