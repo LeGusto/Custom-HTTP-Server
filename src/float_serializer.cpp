@@ -79,3 +79,10 @@ uint64_t htonll(uint64_t val)
         return std::byteswap(val);
     return val;
 }
+
+uint64_t ntohll(uint64_t val)
+{
+    if constexpr (std::endian::native == std::endian::little)
+        return std::byteswap(val);
+    return val;
+}
