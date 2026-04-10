@@ -1,7 +1,10 @@
+#pragma once
+
 #include <cstdint>
 #include <algorithm>
 #include <iostream>
 #include <bit>
+#include <arpa/inet.h>
 
 uint64_t pack754(long double f, uint32_t bits, uint32_t exp_bits)
 {
@@ -99,41 +102,46 @@ void pack(std::string &buf, const T &val)
     {
         if constexpr (std::is_same_v<T, float>)
         {
-            uint64_t packed = pack754(val, 32, 8);
-            buf.push_back(htonll(packed));
+            uint64_t packed = htonll(pack754(val, 32, 8));
+            buf.push_back(packed);
         }
         else if constexpr (std::is_same_v<T, double>)
         {
-            uint64_t packed = pack754(val, 64, 11);
-            buf.push_back(htonll(packed));
+            uint64_t packed = htonll(pack754(val, 64, 11));
+            buf.push_back(packed);
         }
     }
-    else if constexpr (tsd::is_integral_v<T>)
+    else if constexpr (std::is_enum_v<T>)
     {
-        if constexpr (sizeof(T) == 8)
+        pack(buf, static_cast<std::underlying_type_t<T>>(val));
+    }
+    else if constexpr (std::is_integral_v<T>)
+    {
+        if constexpr (sizeof(T) == 1)
         {
             int8_t new_val = val; // just a single byte, no order
-            buf.push_back(val);
+            buf.append(reinterpret_cast<const char *>(&new_val), 1);
         }
-        else if constexpr (sizeof(T) == 16)
+        else if constexpr (sizeof(T) == 2)
         {
             int16_t new_val = htons(val);
-            buf.push_back(htons(new_val));
+            buf.append(reinterpret_cast<const char *>(&new_val), 2);
         }
-        else if constexpr (sizeof(T) == 32)
+        else if constexpr (sizeof(T) == 4)
         {
             int32_t new_val = htonl(val);
-            buf.push_back(htonl(new_val));
+            buf.append(reinterpret_cast<const char *>(&new_val), 4);
         }
-        else if constexpr (sizeof(T) == 64)
+        else if constexpr (sizeof(T) == 8)
         {
             int64_t new_val = htonll(val);
-            buf.push_back(htonll(new_val));
+            buf.append(reinterpret_cast<const char *>(&new_val), 8);
         }
     }
     else if constexpr (Serializable<T>)
     {
-        ; //
+        std::apply([&](const auto &...field)
+                   { (pack(buf, field), ...); }, val.fields());
     }
     else
     {

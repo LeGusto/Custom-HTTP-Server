@@ -16,11 +16,19 @@ server: build_server
 user: build_user
 	./bin/user
 
-build_tests: tests/test_order_book.cpp src/order_book.cpp
+build_order_book_test: tests/test_order_book.cpp src/order_book.cpp
 	g++ ${CXXFLAGS} -o bin/test_order_book tests/test_order_book.cpp src/order_book.cpp
 
-tests: build_tests
+test_order_book: build_order_book_test
 	./bin/test_order_book
+
+build_serializer_test: tests/test_serializer.cpp src/serializer.cpp
+	g++ ${CXXFLAGS} -o bin/test_serializer tests/test_serializer.cpp
+
+
+test_serializer: build_serializer_test
+	./bin/test_serializer
+
 
 clean:
 	rm -f bin/*
