@@ -124,6 +124,18 @@ void Server::print_addrinfo()
     log("Address: {}\nPort: {}\nFamily: {}\nSocket type: {} \n\n", addr, port, family, socket_type);
 }
 
+void Server::remove_fd(int &i)
+{
+    if (i >= pfds.size() || i < 0)
+    {
+        throw std::runtime_error("Invalid pfds index");
+    }
+    close(pfds[i].fd);
+    std::swap(pfds[i], pfds.back());
+    pfds.pop_back();
+    i--;
+}
+
 Server::~Server()
 {
     if (servinfo != nullptr)

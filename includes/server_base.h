@@ -15,6 +15,8 @@
 #include "config.h"
 #include <poll.h>
 #include "order_book.h"
+#include "protocol.h"
+#include "serializer.h"
 
 class Server
 {
@@ -40,6 +42,8 @@ protected:
         }
     }
 
+    void remove_fd(int &i);
+
 private:
     void get_socket();
 
@@ -51,8 +55,6 @@ public:
     void print_sockaddr(sockaddr *sa, socklen_t len);
 
     void print_addrinfo();
-
-    virtual void send_msg(const char *msg, int fd) = 0;
 
     virtual void start_server() = 0;
 

@@ -6,6 +6,7 @@
 #include <bit>
 #include <arpa/inet.h>
 #include <cstring>
+#include "protocol.h"
 
 uint64_t pack754(long double f, uint32_t bits, uint32_t exp_bits);
 long double unpack754(uint64_t encoded_f, uint32_t bits, uint32_t exp_bits);
@@ -142,4 +143,17 @@ void unpack(const std::string &buf, size_t &offset, T &field)
         std::apply([&](auto &...f)
                    { (unpack(buf, offset, f), ...); }, field.fields());
     }
+}
+
+template <MessageType t, typename T>
+void construct_message(std::string &response, const T &payload_val)
+{
+    std::string payload;
+    pack(payload, payload_val);
+
+    uint16_t payload_len = htons(payload.size());
+
+    response.append(reinterpret_cast<const char *>(&payload_len), 2);
+    response.push_back(static_cast<char>(t));
+    response.append(payload);
 }

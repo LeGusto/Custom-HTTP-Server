@@ -14,6 +14,7 @@
 #include <atomic>
 #include <user.h>
 #include <random>
+#include "tcp_helpers.h"
 
 User::User() : user_id(user_count++) {};
 
@@ -59,98 +60,67 @@ void User::connect_socket()
 
 void User::submit_order(Side side, uint32_t quantity, uint32_t price)
 {
-    std::string payload;
-    pack(payload, user_id);
-    pack(payload, side);
-    pack(payload, price);
-    pack(payload, quantity);
-
+    SubmitOrderPayload payload{user_id, side, price, quantity};
     std::string msg;
-    uint16_t len = htons(payload.size());
-    msg.append(reinterpret_cast<const char *>(&len), 2);
-    msg.push_back(static_cast<char>(MessageType::SUBMIT_ORDER));
-    msg.append(payload);
+    construct_message<MessageType::SUBMIT_ORDER>(msg, payload);
+    tcp_send(fd, msg);
 
-    send(fd, msg.data(), msg.size(), 0);
-}
+    char header[3];
+    if (recv(fd, header, 3, MSG_WAITALL) != 3)
+        return;
 
-uint16_t User::strip_msg_len(const char *&msg)
-{
-    uint16_t res;
-    memcpy(&res, msg, 2);
-    msg = msg + 2;
+    auto [msg_len, msg_type] = strip_headers(header);
 
-    return ntohs(res);
-}
+    std::vector<char> response(msg_len);
+    if (recv(fd, response.data(), msg_len, MSG_WAITALL) != msg_len)
+        return;
 
-MessageType User::strip_msg_type(const char *&msg)
-{
-    MessageType res;
-    memcpy(&res, msg, 1);
-    msg++;
+    std::string buf(response.data(), msg_len);
+    size_t offset = 0;
 
-    return res;
+    if (msg_type == MessageType::ORDER_ACK)
+    {
+        uint32_t order_id;
+        unpack(buf, offset, order_id);
+        log(std::format("Order acknowledged: id={}", order_id));
+    }
+    else if (msg_type == MessageType::MATCH)
+    {
+        std::vector<Match> matches;
+        unpack(buf, offset, matches);
+        for (auto &m : matches)
+        {
+            log(std::format("Match: ask={}, bid={}, qty={}", m.ask_order.id, m.bid_order.id, m.quantity));
+        }
+    }
 }
 
 void User::get_orders()
 {
-    std::string payload;
-    pack(payload, user_id);
-
     std::string msg;
-    uint16_t len = htons(payload.size());
-    msg.append(reinterpret_cast<const char *>(&len), 2);
-    msg.push_back(static_cast<char>(MessageType::GET_ORDERS));
-    msg.append(payload);
-
-    send(fd, msg.data(), msg.size(), 0);
+    construct_message<MessageType::GET_ORDERS>(msg, user_id);
+    tcp_send(fd, msg);
 
     char header[3];
     if (recv(fd, header, 3, MSG_WAITALL) != 3)
-    {
-        std::cout << "wha\n";
         return;
-    }
 
-    const char *ptr = header;
-    uint16_t msg_len = strip_msg_len(ptr);
-    MessageType msg_type = strip_msg_type(ptr);
+    auto [msg_len, msg_type] = strip_headers(header);
 
     if (msg_type == MessageType::ORDERS_LIST)
     {
-        char response[MAX_REQUEST_SIZE];
-        recv(fd, response, msg_len, MSG_WAITALL);
-        std::string buf(response, msg_len);
+        std::vector<char> response(msg_len);
+        recv(fd, response.data(), msg_len, MSG_WAITALL);
+        std::string buf(response.data(), msg_len);
 
         std::vector<Order> orders;
-
         size_t offset = 0;
-
         unpack(buf, offset, orders);
 
         for (auto &v : orders)
         {
             v.print();
         }
-    }
-}
-
-void User::get_data()
-{
-
-    char buf[20];
-    memset(&buf, '\0', sizeof(buf));
-    send(fd, buf, 1, 0);
-
-    int32_t len = 0;
-    recv(fd, &len, sizeof(len), MSG_WAITALL); // waitall in case partial message gets delivered
-    len = ntohl(len);
-    while (len > 0)
-    {
-        int gotten = recv(fd, &buf, sizeof(buf) - 1, 0);
-        len -= gotten;
-        log(buf);
-        memset(&buf, '\0', sizeof(buf));
     }
 }
 

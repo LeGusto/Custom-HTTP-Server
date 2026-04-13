@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <tuple>
+#include "order_book.h"
 
 enum class MessageType : uint8_t
 {
@@ -15,3 +17,21 @@ enum class MessageType : uint8_t
 };
 
 constexpr uint32_t MAX_REQUEST_SIZE = 128000;
+
+struct SubmitOrderPayload
+{
+    int user_id = 0;
+    Side side = Side::ASK;
+    uint32_t price = 0;
+    uint32_t quantity = 0;
+
+    auto fields() const
+    {
+        return std::tie(user_id, side, price, quantity);
+    }
+
+    auto fields()
+    {
+        return std::tie(user_id, side, price, quantity);
+    }
+};

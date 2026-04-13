@@ -27,10 +27,6 @@ private:
     int fd = -1;
     int user_id = -1;
 
-    uint16_t strip_msg_len(const char *&msg);
-
-    MessageType strip_msg_type(const char *&msg);
-
 public:
     User();
 

@@ -1,4 +1,5 @@
 #include "server_tcp.h"
+#include "tcp_helpers.h"
 
 void ServerTCP::listen_socket()
 {
@@ -8,24 +9,6 @@ void ServerTCP::listen_socket()
         throw std::runtime_error(strerror(errno));
     }
     log("Server listening...\n");
-}
-
-uint16_t ServerTCP::strip_msg_len(const char *&msg)
-{
-    uint16_t res;
-    memcpy(&res, msg, 2);
-    msg = msg + 2;
-
-    return ntohs(res);
-}
-
-MessageType ServerTCP::strip_msg_type(const char *&msg)
-{
-    MessageType res;
-    memcpy(&res, msg, 1);
-    msg++;
-
-    return res;
 }
 
 void ServerTCP::accept_socket()
@@ -43,32 +26,6 @@ void ServerTCP::accept_socket()
     print_sockaddr(reinterpret_cast<sockaddr *>(&sa), sa_len);
 }
 
-void ServerTCP::send_msg(const char *msg, int fd)
-{
-    ssize_t bytes_needed = strlen(msg);
-    ssize_t bytes_sent = 0;
-
-    uint32_t net_len = htonl(bytes_needed);
-
-    if ((bytes_sent = send(fd, &net_len, sizeof(net_len), 0)) == -1)
-    {
-        throw std::runtime_error(strerror(errno));
-    }
-
-    while (bytes_needed > 0)
-    {
-        log("Bytes left: {}", bytes_needed);
-        if ((bytes_sent = send(fd, msg, bytes_needed, 0)) == -1)
-        {
-            throw std::runtime_error(strerror(errno));
-        }
-        bytes_needed -= bytes_sent;
-        msg += bytes_sent;
-    }
-
-    log("Sent\n");
-}
-
 void ServerTCP::start_server()
 {
     listen_socket();
@@ -81,55 +38,49 @@ void ServerTCP::process_request(int fd)
     if (recv(fd, header, 3, MSG_WAITALL) != 3)
         return;
 
-    const char *ptr = header;
-    uint16_t msg_len = strip_msg_len(ptr);
-    MessageType msg_type = strip_msg_type(ptr);
+    auto [msg_len, msg_type] = strip_headers(header);
 
-    char payload[MAX_REQUEST_SIZE];
-    if (recv(fd, payload, msg_len, MSG_WAITALL) != msg_len)
+    std::vector<char> payload(msg_len);
+    if (recv(fd, payload.data(), msg_len, MSG_WAITALL) != msg_len)
         return;
 
-    std::string buf(payload, msg_len);
+    std::string buf(payload.data(), msg_len);
     size_t offset = 0;
 
     if (msg_type == MessageType::SUBMIT_ORDER)
     {
-        uint32_t customer_id;
-        Side side;
-        uint32_t price;
-        uint32_t quantity;
+        SubmitOrderPayload order_payload{};
+        unpack(buf, offset, order_payload);
 
-        unpack(buf, offset, customer_id);
-        unpack(buf, offset, side);
-        unpack(buf, offset, price);
-        unpack(buf, offset, quantity);
+        log("{}, {}, {}, {}", order_payload.user_id, static_cast<int>(order_payload.side), order_payload.price, order_payload.quantity);
 
-        log("{}, {}, {}, {}", customer_id, static_cast<int>(side), price, quantity);
+        auto res = book.process_order(order_payload.side, order_payload.quantity, order_payload.price, order_payload.user_id);
+        std::string response;
+        if (std::holds_alternative<Order>(res))
+        {
+            construct_message<MessageType::ORDER_ACK>(response, std::get<Order>(res).id);
+        }
+        else if (std::holds_alternative<std::vector<Match>>(res))
+        {
+            construct_message<MessageType::MATCH>(response, std::get<std::vector<Match>>(res));
+        }
+        else
+        {
+            throw std::runtime_error("Order submit return type invalid");
+        }
 
-        book.process_order(side, quantity, price, customer_id);
+        tcp_send(fd, response);
     }
     else if (msg_type == MessageType::GET_ORDERS)
     {
-        log("PRINT");
         uint32_t customer_id;
         unpack(buf, offset, customer_id);
 
-        std::string payload;
-
         std::vector<Order> orders = book.get_orders(customer_id);
-        for (auto &v : orders)
-        {
-            v.print();
-        }
-        pack(payload, orders);
 
         std::string response;
-        uint16_t payload_len = payload.size();
-        payload_len = htons(payload_len);
-        response.append(reinterpret_cast<const char *>(&payload_len), 2);
-        response.push_back(static_cast<char>(MessageType::ORDERS_LIST));
-        response += payload;
-        send(fd, response.data(), response.size(), 0);
+        construct_message<MessageType::ORDERS_LIST>(response, orders);
+        tcp_send(fd, response);
     }
 }
 
@@ -148,9 +99,23 @@ void ServerTCP::use_poll()
 
         for (int i = 1; i < pfds.size(); i++)
         {
-            if (pfds[i].revents & POLLIN)
+            if ((pfds[i].revents & POLLHUP) || (pfds[i].revents & POLLERR))
             {
-                process_request(pfds[i].fd);
+                if (pfds[i].revents & POLLHUP)
+                    log("Client hung up, cleaning up fd...");
+                else
+                    log("Error on poll, cleaning up fd...");
+
+                remove_fd(i);
+            }
+            else if (pfds[i].revents & POLLIN)
+            {
+                char peek;
+                ssize_t n = recv(pfds[i].fd, &peek, 1, MSG_PEEK);
+                if (n <= 0)
+                    remove_fd(i);
+                i--;
+                else process_request(pfds[i].fd);
             }
         }
     }

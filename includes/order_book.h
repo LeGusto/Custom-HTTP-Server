@@ -9,6 +9,7 @@
 #include <format>
 #include <string>
 #include <iostream>
+#include <atomic>
 
 enum class Side
 {
@@ -19,7 +20,7 @@ enum class Side
 struct Order
 {
 private:
-    inline static uint32_t orderID = 0;
+    inline static std::atomic<uint32_t> orderID = 0;
 
 public:
     uint32_t id;
@@ -55,16 +56,22 @@ public:
 struct Match
 {
 public:
-    Order askID;
-    Order bidID;
+    Order ask_order;
+    Order bid_order;
     uint32_t quantity = 0;
 
     auto fields() const
     {
-        return std::tie(askID, bidID, quantity); // generate tuple<uint32_t&,...>
+        return std::tie(ask_order, bid_order, quantity);
     }
 
-    Match(Order _askID, Order _bidID, uint32_t _quantity) : askID(_askID), bidID(_bidID), quantity(_quantity) {};
+    auto fields()
+    {
+        return std::tie(ask_order, bid_order, quantity);
+    }
+
+    Match() = default;
+    Match(Order _ask_order, Order _bid_order, uint32_t _quantity) : ask_order(_ask_order), bid_order(_bid_order), quantity(_quantity) {};
 };
 
 struct mapNavigation

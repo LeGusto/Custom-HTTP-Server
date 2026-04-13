@@ -20,7 +20,7 @@ std::optional<Order> OrderBook::lowest_ask()
 
 void OrderBook::remove_order_refs(uint32_t orderID)
 {
-    auto& nav = orderIDMap.at(orderID);
+    auto &nav = orderIDMap.at(orderID);
     customerIDMap[nav.order_it->customerID].erase(nav.customer_it);
     if (customerIDMap[nav.order_it->customerID].empty())
         customerIDMap.erase(nav.order_it->customerID);
@@ -75,19 +75,11 @@ std::variant<std::vector<Match>, Order> OrderBook::process_order(Side side, uint
     std::list<Order>::iterator order_it;
     if (side == Side::ASK)
     {
-        if (askMap.find(order.price) == askMap.end())
-        {
-            askMap.insert({});
-        }
         askMap[order.price].push_back(order);
         order_it = askMap[order.price].end();
     }
     else if (side == Side::BID)
     {
-        if (bidMap.find(order.price) == bidMap.end())
-        {
-            bidMap.insert({});
-        }
         bidMap[order.price].push_back(order);
         order_it = bidMap[order.price].end();
     }
