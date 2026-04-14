@@ -81,14 +81,13 @@ Total: 16 bytes
 
 ## 0x06 REJECT
 
-| Field       | Offset | Size    | Description                |
-|-------------|--------|---------|----------------------------|
-| Order ID    | 0      | 4 bytes | uint32, rejected order     |
-| Reason Code | 4      | 1 byte  | 0x01 = invalid side        |
-|             |        |         | 0x02 = invalid quantity    |
-|             |        |         | 0x03 = unknown order (cancel) |
+| Field       | Offset | Size   | Description                    |
+|-------------|--------|--------|--------------------------------|
+| Reason Code | 0      | 1 byte | 0x01 = invalid message         |
+|             |        |        | 0x02 = order not found         |
+|             |        |        | 0x03 = payload too large       |
 
-Total: 5 bytes
+Total: 1 byte
 
 ## 0x07 GET_ORDERS
 

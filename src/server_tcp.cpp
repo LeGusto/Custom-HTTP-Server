@@ -36,13 +36,31 @@ void ServerTCP::process_request(int fd)
 {
     char header[3];
     if (recv(fd, header, 3, MSG_WAITALL) != 3)
+    {
+        std::string response;
+        construct_message<MessageType::REJECT>(response, RejectReason::INVALID_MESSAGE);
+        tcp_send(fd, response);
         return;
+    }
 
     auto [msg_len, msg_type] = strip_headers(header);
 
+    if (msg_len > MAX_REQUEST_SIZE)
+    {
+        std::string response;
+        construct_message<MessageType::REJECT>(response, RejectReason::PAYLOAD_TOO_LARGE);
+        tcp_send(fd, response);
+        return;
+    }
+
     std::vector<char> payload(msg_len);
     if (recv(fd, payload.data(), msg_len, MSG_WAITALL) != msg_len)
+    {
+        std::string response;
+        construct_message<MessageType::REJECT>(response, RejectReason::INVALID_MESSAGE);
+        tcp_send(fd, response);
         return;
+    }
 
     std::string buf(payload.data(), msg_len);
     size_t offset = 0;
@@ -81,6 +99,14 @@ void ServerTCP::process_request(int fd)
         std::string response;
         construct_message<MessageType::ORDERS_LIST>(response, orders);
         tcp_send(fd, response);
+    }
+    else
+    {
+
+        std::string response;
+        construct_message<MessageType::REJECT>(response, RejectReason::INVALID_MESSAGE);
+        tcp_send(fd, response);
+        return;
     }
 }
 

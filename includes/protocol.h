@@ -16,7 +16,14 @@ enum class MessageType : uint8_t
     ORDERS_LIST = 0x08,
 };
 
-constexpr uint32_t MAX_REQUEST_SIZE = 128000;
+constexpr uint32_t MAX_REQUEST_SIZE = 32;
+
+enum class RejectReason : uint8_t
+{
+    INVALID_MESSAGE = 0x01,
+    ORDER_NOT_FOUND = 0x02,
+    PAYLOAD_TOO_LARGE = 0x03,
+};
 
 struct SubmitOrderPayload
 {
