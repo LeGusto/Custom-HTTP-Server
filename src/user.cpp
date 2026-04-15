@@ -79,14 +79,14 @@ void User::submit_order(Side side, uint32_t quantity, uint32_t price)
     if (msg_type == MessageType::ORDER_ACK)
     {
         uint32_t order_id;
-        unpack(buf, offset, order_id);
+        unpack(buf.data(), offset, order_id);
         order_ids.push_back(order_id);
         log(std::format("Order acknowledged: id={}", order_id));
     }
     else if (msg_type == MessageType::MATCH)
     {
         std::vector<Match> matches;
-        unpack(buf, offset, matches);
+        unpack(buf.data(), offset, matches);
         for (auto &m : matches)
         {
             log(std::format("Match: ask={}, bid={}, qty={}", m.ask_order.id, m.bid_order.id, m.quantity));
@@ -114,14 +114,14 @@ void User::cancel_order(uint32_t order_id)
     if (msg_type == MessageType::CANCEL_ACK)
     {
         uint32_t cancelled_id;
-        unpack(buf, offset, cancelled_id);
+        unpack(buf.data(), offset, cancelled_id);
         log(std::format("Order cancelled: id={}", cancelled_id));
         std::erase(order_ids, cancelled_id);
     }
     else if (msg_type == MessageType::REJECT)
     {
         RejectReason reason;
-        unpack(buf, offset, reason);
+        unpack(buf.data(), offset, reason);
         log(std::format("Cancel rejected: reason={}", static_cast<int>(reason)));
     }
 }
@@ -145,12 +145,12 @@ void User::get_orders()
 
         std::vector<Order> orders;
         size_t offset = 0;
-        unpack(buf, offset, orders);
+        unpack(buf.data(), offset, orders);
 
         for (auto &v : orders)
         {
             log(std::format("Order(id={}, side={}, qty={}, price={}, customer={})",
-                v.id, v.side == Side::ASK ? "ASK" : "BID", v.quantity, v.price, v.customerID));
+                            v.id, v.side == Side::ASK ? "ASK" : "BID", v.quantity, v.price, v.customerID));
         }
     }
 }

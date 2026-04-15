@@ -45,7 +45,7 @@ struct ClientBuffer
 
     bool is_complete() const
     {
-        return has_header() && received >= 3 + msg_len();
+        return has_header() && received >= 3U + msg_len();
     }
 
     void reset() { received = 0; }
@@ -58,8 +58,9 @@ protected:
     addrinfo *servinfo_head = nullptr; // for freeing linked list
     int32_t sock_desc = -1;
     int32_t reuse_addr = 1; // skip TIME_WAIT for closed ports, doesn't wait for leftover packets
-    std::vector<pollfd> pfds;
-    std::vector<ClientBuffer> client_buffers;
+    pollfd pfds[BACKLOG + 1]; // +1 for listener
+    int pfd_count = 0;
+    ClientBuffer client_buffers[BACKLOG + 1];
     OrderBook book;
 
     void setup_addrinfo();

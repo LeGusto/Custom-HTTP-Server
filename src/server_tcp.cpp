@@ -21,8 +21,9 @@ void ServerTCP::accept_socket()
     {
         throw std::runtime_error(strerror(errno));
     }
-    pfds.push_back({new_fd, POLLIN, 0});
-    client_buffers.push_back({});
+    pfds[pfd_count] = {new_fd, POLLIN, 0};
+    client_buffers[pfd_count].reset();
+    pfd_count++;
     log("Accepted connection:\n");
     print_sockaddr(reinterpret_cast<sockaddr *>(&sa), sa_len);
 }
@@ -35,8 +36,8 @@ void ServerTCP::start_server()
 
 void ServerTCP::process_request(int i)
 {
-    uint32_t fd = pfds[i].fd;
-    auto buffer = client_buffers[i];
+    int fd = pfds[i].fd;
+    auto &buffer = client_buffers[i];
     auto [msg_len, msg_type] = strip_headers(buffer.data);
 
     if (msg_len > MAX_REQUEST_SIZE)
@@ -44,10 +45,11 @@ void ServerTCP::process_request(int i)
         std::string response;
         construct_message<MessageType::REJECT>(response, RejectReason::PAYLOAD_TOO_LARGE);
         tcp_send(fd, response);
+        buffer.reset();
         return;
     };
 
-    size_t offset = 0;
+    size_t offset = 3; // skip header
     std::string response;
 
     if (msg_type == MessageType::SUBMIT_ORDER)
@@ -102,15 +104,17 @@ void ServerTCP::process_request(int i)
     }
 
     tcp_send(fd, response);
+    buffer.reset();
 }
 
 void ServerTCP::use_poll()
 {
-    pfds.push_back({sock_desc, POLLIN, 0});
+    pfds[0] = {sock_desc, POLLIN, 0};
+    pfd_count = 1;
 
     while (true)
     {
-        int events = poll(&pfds[0], pfds.size(), -1);
+        int events = poll(pfds, pfd_count, -1);
         if (events == -1)
         {
             throw std::runtime_error("Poll failed with -1");
@@ -121,7 +125,7 @@ void ServerTCP::use_poll()
             accept_socket();
         }
 
-        for (int i = 1; i < static_cast<int>(pfds.size()); i++)
+        for (int i = 1; i < pfd_count; i++)
         {
             if ((pfds[i].revents & POLLHUP) || (pfds[i].revents & POLLERR))
             {
@@ -134,13 +138,19 @@ void ServerTCP::use_poll()
             }
             else if (pfds[i].revents & POLLIN)
             {
-                char peek;
-                ssize_t n = recv(pfds[i].fd, &peek, 1, MSG_PEEK);
+                auto &buf = client_buffers[i];
+                ssize_t n = recv(pfds[i].fd, buf.data + buf.received, sizeof(buf.data) - buf.received, 0);
                 if (n <= 0)
-                    remove_fd(i);
-                else if (client_buffers[i].is_complete())
                 {
-                    process_request(pfds[i].fd);
+                    remove_fd(i);
+                }
+                else
+                {
+                    buf.received += n;
+                    if (buf.is_complete())
+                    {
+                        process_request(i);
+                    }
                 }
             }
         }

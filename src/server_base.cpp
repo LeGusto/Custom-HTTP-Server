@@ -126,15 +126,15 @@ void Server::print_addrinfo()
 
 void Server::remove_fd(int &i)
 {
-    if (i >= static_cast<int>(pfds.size()) || i < 0)
+    if (i >= pfd_count || i < 0)
     {
         throw std::runtime_error("Invalid pfds index");
     }
     close(pfds[i].fd);
-    std::swap(pfds[i], pfds.back());
-    std::swap(client_buffers[i], client_buffers.back());
-    pfds.pop_back();
-    client_buffers.pop_back();
+    pfd_count--;
+    pfds[i] = pfds[pfd_count];
+    client_buffers[i] = client_buffers[pfd_count];
+    client_buffers[pfd_count].reset();
     i--;
 }
 
@@ -144,12 +144,9 @@ Server::~Server()
     {
         freeaddrinfo(servinfo_head);
     }
-    if (sock_desc != -1)
+
+    for (int i = 0; i < pfd_count; i++)
     {
-        close(sock_desc);
-    }
-    for (auto &v : pfds)
-    {
-        close(v.fd);
+        close(pfds[i].fd);
     }
 }
