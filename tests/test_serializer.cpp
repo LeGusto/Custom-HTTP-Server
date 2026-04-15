@@ -30,7 +30,7 @@ void test_uint8()
 
     size_t offset = 0;
     uint8_t out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == 0xAB, "value matches");
     check(offset == 1, "offset advanced");
 }
@@ -45,7 +45,7 @@ void test_uint16()
 
     size_t offset = 0;
     uint16_t out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == 1234, "value matches");
     check(offset == 2, "offset advanced");
 }
@@ -60,7 +60,7 @@ void test_uint32()
 
     size_t offset = 0;
     uint32_t out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == 100000, "value matches");
     check(offset == 4, "offset advanced");
 }
@@ -75,7 +75,7 @@ void test_uint64()
 
     size_t offset = 0;
     uint64_t out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == 123456789012345ULL, "value matches");
     check(offset == 8, "offset advanced");
 }
@@ -90,7 +90,7 @@ void test_int8()
 
     size_t offset = 0;
     int8_t out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == -42, "value matches");
 }
 
@@ -104,7 +104,7 @@ void test_int32()
 
     size_t offset = 0;
     int32_t out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == -99999, "value matches");
 }
 
@@ -117,7 +117,7 @@ void test_enum()
 
     size_t offset = 0;
     Side out = Side::ASK;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == Side::BID, "value matches");
 }
 
@@ -130,7 +130,7 @@ void test_order()
 
     size_t offset = 0;
     Order out(Side::ASK, 0, 0, 0);
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
 
     check(out.id == order.id, "id matches");
     check(out.quantity == 50, "quantity matches");
@@ -155,9 +155,9 @@ void test_multiple_fields()
     uint32_t out_a = 0;
     uint16_t out_b = 0;
     uint8_t out_c = 0;
-    unpack(buf, offset, out_a);
-    unpack(buf, offset, out_b);
-    unpack(buf, offset, out_c);
+    unpack(buf.data(), offset, out_a);
+    unpack(buf.data(), offset, out_b);
+    unpack(buf.data(), offset, out_c);
     check(out_a == 42, "first value matches");
     check(out_b == 1000, "second value matches");
     check(out_c == 0xFF, "third value matches");
@@ -173,7 +173,7 @@ void test_float()
 
     size_t offset = 0;
     float out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(std::abs(out - 3.14f) < 0.001f, "value matches");
 }
 
@@ -186,7 +186,7 @@ void test_double()
 
     size_t offset = 0;
     double out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(std::abs(out - (-123.456)) < 0.001, "value matches");
 }
 
@@ -199,7 +199,7 @@ void test_float_zero()
 
     size_t offset = 0;
     float out = 1.0f;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(out == 0.0f, "zero matches");
 }
 
@@ -212,7 +212,7 @@ void test_negative_float()
 
     size_t offset = 0;
     float out = 0;
-    unpack(buf, offset, out);
+    unpack(buf.data(), offset, out);
     check(std::abs(out - (-42.5f)) < 0.001f, "value matches");
 }
 

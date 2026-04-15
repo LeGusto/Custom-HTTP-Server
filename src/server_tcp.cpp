@@ -122,7 +122,10 @@ void ServerTCP::use_poll()
 
         if (pfds[0].revents & POLLIN)
         {
-            accept_socket();
+            if (pfd_count < BACKLOG + 1)
+            {
+                accept_socket();
+            }
         }
 
         for (int i = 1; i < pfd_count; i++)
