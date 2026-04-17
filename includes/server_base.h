@@ -24,16 +24,6 @@ struct ClientBuffer
     char data[MAX_REQUEST_SIZE + 3]; // +3 for the header
     size_t received = 0;
 
-    void append(const char *src, size_t len)
-    {
-        if (received + len > MAX_REQUEST_SIZE)
-        {
-            throw std::runtime_error("Client buffer append exceeds max capacity");
-        }
-        std::memcpy(&data + received, src, len);
-        received += len;
-    }
-
     bool has_header() const { return received >= 3; }
 
     uint16_t msg_len() const
@@ -57,7 +47,7 @@ protected:
     addrinfo *servinfo = nullptr;
     addrinfo *servinfo_head = nullptr; // for freeing linked list
     int32_t sock_desc = -1;
-    int32_t reuse_addr = 1; // skip TIME_WAIT for closed ports, doesn't wait for leftover packets
+    int32_t reuse_addr = 1;   // skip TIME_WAIT for closed ports, doesn't wait for leftover packets
     pollfd pfds[BACKLOG + 1]; // +1 for listener
     int pfd_count = 0;
     ClientBuffer client_buffers[BACKLOG + 1];
