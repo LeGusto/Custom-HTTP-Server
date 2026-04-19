@@ -7,6 +7,7 @@
 #include <utility>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <cerrno>
 #include "protocol.h"
 
 inline std::pair<uint16_t, MessageType> strip_headers(const char *header)
@@ -29,7 +30,11 @@ inline void tcp_send(int fd, const std::string &msg)
     {
         ssize_t bytes_sent = send(fd, msg.data() + total_sent, to_send - total_sent, 0);
         if (bytes_sent == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+                continue;
             throw std::runtime_error(strerror(errno));
+        }
         total_sent += bytes_sent;
     }
 }
