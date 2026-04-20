@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/user.dir/link.d CMakeFiles/user.dir/src/user_spawner.cpp.o CMakeFiles/user.dir/src/user.cpp.o CMakeFiles/user.dir/src/serializer.cpp.o -o /home/LeGusto/Documents/Custom-HTTP-Server/bin/user

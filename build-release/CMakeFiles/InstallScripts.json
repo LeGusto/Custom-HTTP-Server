@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/LeGusto/Documents/Custom-HTTP-Server/build-release/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

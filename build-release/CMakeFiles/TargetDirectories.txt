@@ -1,0 +1,9 @@
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/server.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/user.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/test_order_book.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/test_serializer.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/run_server.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/run_user.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/test.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/edit_cache.dir
+/home/LeGusto/Documents/Custom-HTTP-Server/build-release/CMakeFiles/rebuild_cache.dir
