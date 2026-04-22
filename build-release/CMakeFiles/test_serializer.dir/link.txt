@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/test_serializer.dir/link.d CMakeFiles/test_serializer.dir/tests/test_serializer.cpp.o CMakeFiles/test_serializer.dir/src/serializer.cpp.o -o /home/LeGusto/Documents/Custom-HTTP-Server/bin/test_serializer
