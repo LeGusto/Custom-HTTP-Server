@@ -21,21 +21,21 @@
 
 struct ClientBuffer
 {
-    char data[MAX_REQUEST_SIZE + 3]; // +3 for the header
+    char data[MAX_REQUEST_SIZE + 5]; // +5 for the header (4 length + 1 type)
     size_t received = 0;
 
-    bool has_header() const { return received >= 3; }
+    bool has_header() const { return received >= 5; }
 
-    uint16_t msg_len() const
+    uint32_t msg_len() const
     {
-        uint16_t len;
-        std::memcpy(&len, &data, 2);
-        return ntohs(len);
+        uint32_t len;
+        std::memcpy(&len, &data, 4);
+        return ntohl(len);
     }
 
     bool is_complete() const
     {
-        return has_header() && received >= 3U + msg_len();
+        return has_header() && received >= 5U + msg_len();
     }
 
     void reset() { received = 0; }

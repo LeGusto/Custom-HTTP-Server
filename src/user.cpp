@@ -65,8 +65,8 @@ void User::submit_order(Side side, uint32_t quantity, uint32_t price)
     construct_message<MessageType::SUBMIT_ORDER>(msg, payload);
     tcp_send(fd, msg);
 
-    char header[3];
-    tcp_recv(fd, header, 3);
+    char header[5];
+    tcp_recv(fd, header, 5);
 
     auto [msg_len, msg_type] = strip_headers(header);
 
@@ -100,8 +100,8 @@ void User::cancel_order(uint32_t order_id)
     construct_message<MessageType::CANCEL_ORDER>(msg, order_id);
     tcp_send(fd, msg);
 
-    char header[3];
-    tcp_recv(fd, header, 3);
+    char header[5];
+    tcp_recv(fd, header, 5);
 
     auto [msg_len, msg_type] = strip_headers(header);
 
@@ -132,8 +132,8 @@ void User::get_orders()
     construct_message<MessageType::GET_ORDERS>(msg, user_id);
     tcp_send(fd, msg);
 
-    char header[3];
-    tcp_recv(fd, header, 3);
+    char header[5];
+    tcp_recv(fd, header, 5);
 
     auto [msg_len, msg_type] = strip_headers(header);
 
@@ -142,6 +142,9 @@ void User::get_orders()
         std::vector<char> response(msg_len);
         tcp_recv(fd, response.data(), msg_len);
         std::string buf(response.data(), msg_len);
+
+        log(std::format("Received {}", msg_len));
+        std::fflush(stdout);
 
         std::vector<Order> orders;
         size_t offset = 0;

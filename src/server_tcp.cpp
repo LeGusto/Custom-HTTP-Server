@@ -7,6 +7,10 @@
 #include <fstream>
 #include <chrono>
 
+#ifndef PROJECT_ROOT
+#define PROJECT_ROOT "."
+#endif
+
 volatile sig_atomic_t ServerTCP::should_exit = 0;
 
 void ServerTCP::signal_handler(int)
@@ -102,7 +106,7 @@ void ServerTCP::process_request(int i)
         return;
     };
 
-    size_t offset = 3; // skip header
+    size_t offset = 5; // skip header (4 length + 1 type)
     std::string response;
 
     if (msg_type == MessageType::SUBMIT_ORDER)

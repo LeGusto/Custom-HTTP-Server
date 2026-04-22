@@ -151,9 +151,9 @@ void construct_message(std::string &response, const T &payload_val)
     std::string payload;
     pack(payload, payload_val);
 
-    uint16_t payload_len = htons(payload.size());
+    uint32_t payload_len = htonl(payload.size());
 
-    response.append(reinterpret_cast<const char *>(&payload_len), 2);
+    response.append(reinterpret_cast<const char *>(&payload_len), 4);
     response.push_back(static_cast<char>(t));
     response.append(payload);
 }

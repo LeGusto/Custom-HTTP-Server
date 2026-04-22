@@ -10,15 +10,15 @@
 #include <cerrno>
 #include "protocol.h"
 
-inline std::pair<uint16_t, MessageType> strip_headers(const char *header)
+inline std::pair<uint32_t, MessageType> strip_headers(const char *header)
 {
-    uint16_t len;
-    memcpy(&len, header, 2);
+    uint32_t len;
+    memcpy(&len, header, 4);
 
     MessageType type;
-    memcpy(&type, header + 2, 1);
+    memcpy(&type, header + 4, 1);
 
-    return {ntohs(len), type};
+    return {ntohl(len), type};
 }
 
 inline void tcp_send(int fd, const std::string &msg)
