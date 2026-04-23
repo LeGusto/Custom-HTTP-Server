@@ -1,53 +1,12 @@
 #include "server_tcp.h"
 #include "tcp_helpers.h"
 #include <ctime>
-#include <algorithm>
-#include <print>
-#include <filesystem>
-#include <fstream>
-#include <chrono>
-
-#ifndef PROJECT_ROOT
-#define PROJECT_ROOT "."
-#endif
 
 volatile sig_atomic_t ServerTCP::should_exit = 0;
 
 void ServerTCP::signal_handler(int)
 {
     should_exit = 1;
-}
-
-void ServerTCP::dump_latencies()
-{
-    if (latencies_ns.empty())
-    {
-        std::print("[bench] no samples collected\n");
-        return;
-    }
-    std::sort(latencies_ns.begin(), latencies_ns.end());
-    auto pct = [&](double p)
-    {
-        size_t idx = static_cast<size_t>(latencies_ns.size() * p);
-        if (idx >= latencies_ns.size())
-            idx = latencies_ns.size() - 1;
-        return latencies_ns[idx];
-    };
-    std::print("[bench] count={}\n", latencies_ns.size());
-    std::print("[bench] min={}ns p50={}ns p95={}ns p99={}ns p99.9={}ns max={}ns\n",
-               latencies_ns.front(), pct(0.50), pct(0.95), pct(0.99), pct(0.999), latencies_ns.back());
-
-    std::filesystem::path log_dir = std::filesystem::path(PROJECT_ROOT) / "logs";
-    std::filesystem::create_directory(log_dir);
-    std::ofstream out(log_dir / "bench.txt", std::ios::app);
-    if (!out)
-        return;
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    char ts[32];
-    std::strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
-    std::print(out, "{} count={} min={} p50={} p95={} p99={} p99.9={} max={}\n",
-               ts, latencies_ns.size(), latencies_ns.front(),
-               pct(0.50), pct(0.95), pct(0.99), pct(0.999), latencies_ns.back());
 }
 
 void ServerTCP::listen_socket()
@@ -91,7 +50,7 @@ void ServerTCP::start_server()
     use_poll();
 }
 
-void ServerTCP::process_request(int i)
+MessageType ServerTCP::process_request(int i)
 {
     int fd = pfds[i].fd;
     auto &buffer = client_buffers[i];
@@ -103,7 +62,7 @@ void ServerTCP::process_request(int i)
         construct_message<MessageType::REJECT>(response, RejectReason::PAYLOAD_TOO_LARGE);
         tcp_send(fd, response);
         buffer.reset();
-        return;
+        return msg_type;
     };
 
     size_t offset = 5; // skip header (4 length + 1 type)
@@ -162,6 +121,7 @@ void ServerTCP::process_request(int i)
 
     tcp_send(fd, response);
     buffer.reset();
+    return msg_type;
 }
 
 void ServerTCP::use_poll()
@@ -169,8 +129,7 @@ void ServerTCP::use_poll()
     pfds[0] = {sock_desc, POLLIN, 0};
     pfd_count = 1;
 
-    latencies_ns.reserve(1'000'000);
-    std::signal(SIGINT, &ServerTCP::signal_handler); //
+    std::signal(SIGINT, &ServerTCP::signal_handler);
 
     while (!should_exit)
     {
@@ -226,11 +185,10 @@ void ServerTCP::use_poll()
                         {
                             struct timespec t_start, t_end;
                             clock_gettime(CLOCK_MONOTONIC, &t_start);
-                            process_request(i);
+                            MessageType type = process_request(i);
                             clock_gettime(CLOCK_MONOTONIC, &t_end);
                             uint64_t ns = (t_end.tv_sec - t_start.tv_sec) * 1'000'000'000ULL + (t_end.tv_nsec - t_start.tv_nsec);
-                            if (latencies_ns.size() < latencies_ns.capacity())
-                                latencies_ns.push_back(ns);
+                            tracker.record(type, ns);
                         }
                     }
                 }
@@ -244,5 +202,5 @@ void ServerTCP::use_poll()
         }
     }
 
-    dump_latencies();
+    tracker.dump();
 }

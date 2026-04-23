@@ -73,14 +73,23 @@ Total: 4 bytes
 
 Sent to both the buyer and seller when orders match.
 
-| Field        | Offset | Size    | Description              |
-|--------------|--------|---------|--------------------------|
-| Ask Order ID | 0      | 4 bytes | uint32, ask side order   |
-| Bid Order ID | 4      | 4 bytes | uint32, bid side order   |
-| Price        | 8      | 4 bytes | uint32, matched price    |
-| Quantity     | 12     | 4 bytes | uint32, matched quantity |
+| Field     | Offset | Size     | Description                         |
+|-----------|--------|----------|-------------------------------------|
+| Ask Order | 0      | 17 bytes | Full Order struct (see below)       |
+| Bid Order | 17     | 17 bytes | Full Order struct (see below)       |
+| Quantity  | 34     | 4 bytes  | uint32, matched quantity            |
 
-Total: 16 bytes
+Total: 38 bytes
+
+Order struct layout (same as used in ORDERS_LIST):
+
+| Field       | Offset | Size    | Description            |
+|-------------|--------|---------|------------------------|
+| Order ID    | 0      | 4 bytes | uint32, order ID       |
+| Quantity    | 4      | 4 bytes | uint32, order quantity |
+| Price       | 8      | 4 bytes | uint32, price level    |
+| Customer ID | 12     | 4 bytes | uint32, owner          |
+| Side        | 16     | 1 byte  | 0x00 = ASK, 0x01 = BID |
 
 ## 0x06 REJECT
 
@@ -109,11 +118,12 @@ Total: 4 bytes
 
 Each order entry:
 
-| Field    | Offset | Size    | Description            |
-|----------|--------|---------|------------------------|
-| Order ID | 0      | 4 bytes | uint32, order ID       |
-| Side     | 4      | 1 byte  | 0x00 = ASK, 0x01 = BID|
-| Price    | 5      | 4 bytes | uint32, price level    |
-| Quantity | 9      | 4 bytes | uint32, order quantity |
+| Field       | Offset | Size    | Description            |
+|-------------|--------|---------|------------------------|
+| Order ID    | 0      | 4 bytes | uint32, order ID       |
+| Quantity    | 4      | 4 bytes | uint32, order quantity |
+| Price       | 8      | 4 bytes | uint32, price level    |
+| Customer ID | 12     | 4 bytes | uint32, owner          |
+| Side        | 16     | 1 byte  | 0x00 = ASK, 0x01 = BID |
 
-Per entry: 13 bytes
+Per entry: 17 bytes
