@@ -1,4 +1,5 @@
 #include "latency_tracker.h"
+#include "enum_name.h"
 #include <algorithm>
 #include <print>
 #include <filesystem>
@@ -27,23 +28,7 @@ void LatencyTracker::record(MessageType type, uint64_t ns)
         bucket.push_back(ns);
 }
 
-static const char *msg_type_name(MessageType t)
-{
-    switch (t)
-    {
-    case MessageType::SUBMIT_ORDER: return "SUBMIT_ORDER";
-    case MessageType::CANCEL_ORDER: return "CANCEL_ORDER";
-    case MessageType::GET_ORDERS:   return "GET_ORDERS";
-    case MessageType::ORDER_ACK:    return "ORDER_ACK";
-    case MessageType::CANCEL_ACK:   return "CANCEL_ACK";
-    case MessageType::MATCH:        return "MATCH";
-    case MessageType::REJECT:       return "REJECT";
-    case MessageType::ORDERS_LIST:  return "ORDERS_LIST";
-    }
-    return "UNKNOWN";
-}
-
-static void report_bucket(std::vector<uint64_t> &samples, const std::string &label,
+static void report_bucket(std::vector<uint64_t> &samples, std::string_view label,
                           std::ostream *file_out, const char *ts)
 {
     if (samples.empty())
@@ -88,7 +73,7 @@ void LatencyTracker::dump()
         if (by_type[i].empty())
             continue;
         report_bucket(by_type[i],
-                      msg_type_name(static_cast<MessageType>(i)),
+                      enum_name(static_cast<MessageType>(i)),
                       file_out, ts);
     }
 }
