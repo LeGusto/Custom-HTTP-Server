@@ -46,6 +46,7 @@ add_executable(server
     src/server_udp.cpp
     src/serializer.cpp
     src/order_book.cpp
+    src/latency.cpp
 )
 target_compile_definitions(server PRIVATE PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 target_link_libraries(server PRIVATE TBB::tbb)
